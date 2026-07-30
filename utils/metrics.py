@@ -3,79 +3,26 @@ import pandas as pd
 
 def calculate_metrics(df):
 
-    balance = (
-        float(df["zůstatek"].iloc[-1])
-        if len(df)
-        else 0
+    income = (
+        df.loc[df["částka platby"] > 0, "částka platby"]
+        .sum()
     )
 
-    income = float(
-        df.loc[
-            df["částka platby"] > 0,
-            "částka platby",
-        ].sum()
-    )
-
-    expense = abs(
-        float(
-            df.loc[
-                df["částka platby"] < 0,
-                "částka platby",
-            ].sum()
+    expense = (
+        abs(
+            df.loc[df["částka platby"] < 0, "částka platby"]
+            .sum()
         )
     )
 
     cashflow = income - expense
 
+    balance = (
+        df.sort_values("datum zaúčtování")
+        .iloc[-1]["zůstatek"]
+    )
+
     transactions = len(df)
-
-    avg_income = (
-        float(
-            df.loc[
-                df["částka platby"] > 0,
-                "částka platby",
-            ].mean()
-        )
-        if income
-        else 0
-    )
-
-    avg_expense = (
-        abs(
-            float(
-                df.loc[
-                    df["částka platby"] < 0,
-                    "částka platby",
-                ].mean()
-            )
-        )
-        if expense
-        else 0
-    )
-
-    biggest_income = (
-        float(
-            df.loc[
-                df["částka platby"] > 0,
-                "částka platby",
-            ].max()
-        )
-        if income
-        else 0
-    )
-
-    biggest_expense = (
-        abs(
-            float(
-                df.loc[
-                    df["částka platby"] < 0,
-                    "částka platby",
-                ].min()
-            )
-        )
-        if expense
-        else 0
-    )
 
     active_days = (
         df["datum zaúčtování"]
@@ -83,49 +30,72 @@ def calculate_metrics(df):
         .nunique()
     )
 
-    income_transactions = int(
-        (df["částka platby"] > 0).sum()
+    incomes = df.loc[
+        df["částka platby"] > 0,
+        "částka platby",
+    ]
+
+    expenses = abs(
+        df.loc[
+            df["částka platby"] < 0,
+            "částka platby",
+        ]
     )
 
-    expense_transactions = int(
-        (df["částka platby"] < 0).sum()
-    )
-
-    average_daily_expense = (
-        expense / active_days
-        if active_days
+    biggest_income = (
+        incomes.max()
+        if not incomes.empty
         else 0
     )
 
-    average_daily_income = (
-        income / active_days
-        if active_days
+    biggest_expense = (
+        expenses.max()
+        if not expenses.empty
+        else 0
+    )
+
+    avg_income = (
+        incomes.mean()
+        if not incomes.empty
+        else 0
+    )
+
+    avg_expense = (
+        expenses.mean()
+        if not expenses.empty
+        else 0
+    )
+
+    median_expense = (
+        expenses.median()
+        if not expenses.empty
+        else 0
+    )
+
+    median_income = (
+        incomes.median()
+        if not incomes.empty
         else 0
     )
 
     savings_rate = (
-        round(
-            (cashflow / income) * 100,
-            1,
-        )
-        if income
+        round((cashflow / income) * 100, 1)
+        if income > 0
         else 0
     )
 
     return {
-        "balance": balance,
-        "income": income,
-        "expense": expense,
-        "cashflow": cashflow,
-        "transactions": transactions,
-        "avg_income": avg_income,
-        "avg_expense": avg_expense,
-        "biggest_income": biggest_income,
-        "biggest_expense": biggest_expense,
-        "active_days": active_days,
-        "income_transactions": income_transactions,
-        "expense_transactions": expense_transactions,
-        "average_daily_income": average_daily_income,
-        "average_daily_expense": average_daily_expense,
-        "savings_rate": savings_rate,
+        "income": float(income),
+        "expense": float(expense),
+        "cashflow": float(cashflow),
+        "balance": float(balance),
+        "transactions": int(transactions),
+        "active_days": int(active_days),
+        "biggest_income": float(biggest_income),
+        "biggest_expense": float(biggest_expense),
+        "avg_income": float(avg_income),
+        "avg_expense": float(avg_expense),
+        "median_income": float(median_income),
+        "median_expense": float(median_expense),
+        "savings_rate": float(savings_rate),
     }
