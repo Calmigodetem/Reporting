@@ -8,33 +8,44 @@ def filter_data(df):
     selected_year = st.sidebar.selectbox(
         "Rok",
         years,
-        index=len(years) - 1
+        index=len(years) - 1,
     )
 
     months = ["Vše"] + list(range(1, 13))
 
     selected_month = st.sidebar.selectbox(
         "Měsíc",
-        months
+        months,
     )
 
     transaction_type = st.sidebar.selectbox(
         "Typ transakcí",
-        ["Vše", "Příjmy", "Výdaje"]
+        [
+            "Vše",
+            "Příjmy",
+            "Výdaje",
+        ],
     )
 
-    categories = ["Vše"] + sorted(df["Kategorie"].dropna().unique().tolist())
+    categories = ["Vše"] + sorted(
+        df["Kategorie"]
+        .dropna()
+        .unique()
+        .tolist()
+    )
 
     selected_category = st.sidebar.selectbox(
         "Kategorie",
-        categories
+        categories,
     )
 
     search = st.sidebar.text_input(
-        "Protistrana obsahuje"
+        "Protistrana obsahuje",
     )
 
-    filtered = df[df["datum zaúčtování"].dt.year == selected_year]
+    filtered = df[
+        df["datum zaúčtování"].dt.year == selected_year
+    ]
 
     if selected_month != "Vše":
         filtered = filtered[
@@ -60,7 +71,10 @@ def filter_data(df):
         filtered = filtered[
             filtered["protistrana"]
             .fillna("")
-            .str.contains(search, case=False)
+            .str.contains(
+                search,
+                case=False,
+            )
         ]
 
     return filtered
