@@ -14,9 +14,30 @@ def load_file(uploaded_file):
             )
         except Exception:
             uploaded_file.seek(0)
-            df = pd.read_csv(uploaded_file, sep=";")
+            df = pd.read_csv(
+                uploaded_file,
+                sep=";"
+            )
     else:
         df = pd.read_excel(uploaded_file)
+
+    df.columns = [
+        str(col).strip().lower()
+        for col in df.columns
+    ]
+
+    rename = {
+        "datum": "datum zaúčtování",
+        "datum zauctovani": "datum zaúčtování",
+        "částka": "částka platby",
+        "castka": "částka platby",
+        "partner": "protistrana",
+        "protistrana / příjemce": "protistrana",
+        "poznámka": "popis transakce",
+        "popis": "popis transakce",
+    }
+
+    df.rename(columns=rename, inplace=True)
 
     df["datum zaúčtování"] = pd.to_datetime(
         df["datum zaúčtování"],
@@ -26,12 +47,19 @@ def load_file(uploaded_file):
 
     for column in ["částka platby", "zůstatek"]:
 
-        df[column] = (
-            df[column]
-            .astype(str)
-            .str.replace(" ", "", regex=False)
-            .str.replace(",", ".", regex=False)
-            .astype(float)
-        )
+        if column in df.columns:
+            df[column] = (
+                df[column]
+                .astype(str)
+                .str.replace(" ", "", regex=False)
+                .str.replace(",", ".", regex=False)
+                .astype(float)
+            )
+
+    if "protistrana" not in df.columns:
+        df["protistrana"] = ""
+
+    if "popis transakce" not in df.columns:
+        df["popis transakce"] = ""
 
     return df
