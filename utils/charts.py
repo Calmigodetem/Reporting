@@ -32,12 +32,22 @@ def category_chart(df):
         .reset_index()
     )
 
-    return px.pie(
+    fig = px.pie(
         summary,
         names="Kategorie",
         values="částka platby",
         title="Výdaje podle kategorií",
+        hole=0.45,
     )
+
+    fig.update_traces(textposition="inside")
+
+    fig.update_layout(
+        height=420,
+        margin=dict(l=10, r=10, t=50, b=10),
+    )
+
+    return fig
 
 
 def monthly_chart(df):
@@ -68,17 +78,27 @@ def monthly_chart(df):
         axis=1
     ).fillna(0)
 
-    monthly.columns = ["Příjmy", "Výdaje"]
+    monthly.columns = [
+        "Příjmy",
+        "Výdaje",
+    ]
 
     monthly = monthly.reset_index()
 
-    return px.bar(
+    fig = px.bar(
         monthly,
         x="Měsíc",
         y=["Příjmy", "Výdaje"],
         barmode="group",
         title="Příjmy × Výdaje po měsících",
     )
+
+    fig.update_layout(
+        height=420,
+        margin=dict(l=10, r=10, t=50, b=10),
+    )
+
+    return fig
 
 
 def top_suppliers_chart(df):
@@ -94,10 +114,18 @@ def top_suppliers_chart(df):
         .reset_index()
     )
 
-    return px.bar(
+    fig = px.bar(
         top,
         x="částka platby",
         y="protistrana",
         orientation="h",
         title="TOP 10 příjemců plateb",
     )
+
+    fig.update_layout(
+        height=420,
+        margin=dict(l=10, r=10, t=50, b=10),
+        yaxis=dict(categoryorder="total ascending"),
+    )
+
+    return fig
