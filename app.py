@@ -8,7 +8,9 @@ from utils.charts import (
     monthly_chart,
     top_suppliers_chart,
     cashflow_chart,
-    daily_expense_chart,
+    cumulative_cashflow_chart,
+    weekday_expense_chart,
+    category_trend_chart,
 )
 from utils.filters import filter_data
 from utils.categories import categorize
@@ -17,6 +19,7 @@ st.set_page_config(
     page_title="Business Cockpit",
     page_icon="📊",
     layout="wide",
+    initial_sidebar_state="expanded",
 )
 
 
@@ -31,6 +34,8 @@ def czk(value):
 
 
 st.title("📊 Business Cockpit")
+st.caption("Executive Dashboard")
+
 st.sidebar.title("Filtry")
 
 uploaded_file = st.file_uploader(
@@ -46,97 +51,151 @@ if uploaded_file:
 
     metrics = calculate_metrics(df)
 
-    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+    c1, c2, c3, c4 = st.columns(4)
 
-    kpi1.metric(
+    c1.metric(
         "💰 Stav účtu",
         czk(metrics["balance"]),
     )
 
-    kpi2.metric(
+    c2.metric(
         "📈 Příjmy",
         czk(metrics["income"]),
     )
 
-    kpi3.metric(
+    c3.metric(
         "📉 Výdaje",
         czk(metrics["expense"]),
     )
 
-    kpi4.metric(
+    c4.metric(
         "📊 Cashflow",
         czk(metrics["cashflow"]),
+        f"{metrics['savings_rate']} %",
     )
 
-    kpi5, kpi6, kpi7 = st.columns(3)
+    c5, c6, c7, c8 = st.columns(4)
 
-    kpi5.metric(
+    c5.metric(
         "📄 Transakcí",
         metrics["transactions"],
     )
 
-    kpi6.metric(
-        "⬆️ Průměrný příjem",
-        czk(metrics["avg_income"]),
+    c6.metric(
+        "📅 Aktivních dní",
+        metrics["active_days"],
     )
 
-    kpi7.metric(
-        "⬇️ Průměrný výdaj",
-        czk(metrics["avg_expense"]),
+    c7.metric(
+        "⬆️ Nejvyšší příjem",
+        czk(metrics["biggest_income"]),
     )
 
-    left, right = st.columns(2)
+    c8.metric(
+        "⬇️ Nejvyšší výdaj",
+        czk(metrics["biggest_expense"]),
+    )
 
-    with left:
-
-        st.plotly_chart(
-            balance_chart(df),
-            use_container_width=True,
-        )
-
-        st.plotly_chart(
-            monthly_chart(df),
-            use_container_width=True,
-        )
-
-        st.plotly_chart(
-            cashflow_chart(df),
-            use_container_width=True,
-        )
-
-    with right:
-
-        st.plotly_chart(
-            category_chart(df),
-            use_container_width=True,
-        )
-
-        st.plotly_chart(
-            top_suppliers_chart(df),
-            use_container_width=True,
-        )
-
-        st.plotly_chart(
-            daily_expense_chart(df),
-            use_container_width=True,
-        )
-
-    st.subheader("Transakce")
-
-    st.dataframe(
-        df[
-            [
-                "datum zaúčtování",
-                "Kategorie",
-                "částka platby",
-                "protistrana",
-                "popis transakce",
-            ]
+    tab1, tab2, tab3 = st.tabs(
+        [
+            "📊 Dashboard",
+            "📈 Analýzy",
+            "📄 Transakce",
         ]
-        .sort_values(
-            "datum zaúčtování",
-            ascending=False,
-        ),
-        use_container_width=True,
-        hide_index=True,
     )
+
+    with tab1:
+
+        l, r = st.columns(2)
+
+        with l:
+
+            st.plotly_chart(
+                balance_chart(df),
+                use_container_width=True,
+            )
+
+            st.plotly_chart(
+                monthly_chart(df),
+                use_container_width=True,
+            )
+
+            st.plotly_chart(
+                cumulative_cashflow_chart(df),
+                use_container_width=True,
+            )
+
+        with r:
+
+            st.plotly_chart(
+                category_chart(df),
+                use_container_width=True,
+            )
+
+            st.plotly_chart(
+                top_suppliers_chart(df),
+                use_container_width=True,
+            )
+
+            st.plotly_chart(
+                cashflow_chart(df),
+                use_container_width=True,
+            )
+
+    with tab2:
+
+        l, r = st.columns(2)
+
+        with l:
+
+            st.plotly_chart(
+                weekday_expense_chart(df),
+                use_container_width=True,
+            )
+
+        with r:
+
+            st.plotly_chart(
+                category_trend_chart(df),
+                use_container_width=True,
+            )
+
+        st.subheader("🤖 AI CFO")
+
+        if metrics["cashflow"] > 0:
+            st.success(
+                "Cashflow je kladné. Firma vytváří přebytek hotovosti."
+            )
+        else:
+            st.error(
+                "Cashflow je záporné. Doporučujeme analyzovat hlavní nákladové položky."
+            )
+
+        if metrics["expense"] > metrics["income"] * 0.8:
+            st.warning(
+                "Výdaje tvoří více než 80 % příjmů."
+            )
+
+        if metrics["biggest_expense"] > metrics["avg_expense"] * 3:
+            st.info(
+                "Byla nalezena mimořádně vysoká výdajová transakce."
+            )
+
+    with tab3:
+
+        st.dataframe(
+            df[
+                [
+                    "datum zaúčtování",
+                    "Kategorie",
+                    "částka platby",
+                    "protistrana",
+                    "popis transakce",
+                ]
+            ].sort_values(
+                "datum zaúčtování",
+                ascending=False,
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
