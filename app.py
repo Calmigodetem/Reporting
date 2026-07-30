@@ -2,7 +2,7 @@ import streamlit as st
 
 from utils.loader import load_file
 from utils.metrics import calculate_metrics
-from utils.charts import balance_chart
+from utils.charts import balance_chart, category_chart
 from utils.filters import filter_data
 from utils.categories import categorize
 
@@ -12,8 +12,10 @@ st.set_page_config(
     layout="wide"
 )
 
+
 def czk(value):
     return f"{value:,.2f}".replace(",", "X").replace(".", ",").replace("X", " ") + " Kč"
+
 
 st.title("📊 Business Cockpit")
 st.sidebar.title("Filtry")
@@ -38,18 +40,29 @@ if uploaded_file:
     c3.metric("📉 Výdaje", czk(metrics["expense"]))
     c4.metric("📊 Cashflow", czk(metrics["cashflow"]))
 
-    st.plotly_chart(balance_chart(df), use_container_width=True)
+    st.plotly_chart(
+        balance_chart(df),
+        use_container_width=True
+    )
+
+    st.plotly_chart(
+        category_chart(df),
+        use_container_width=True
+    )
 
     st.dataframe(
         df[
             [
                 "datum zaúčtování",
-                "částka platby",
                 "Kategorie",
+                "částka platby",
                 "protistrana",
                 "popis transakce",
             ]
-        ].sort_values("datum zaúčtování", ascending=False),
+        ].sort_values(
+            "datum zaúčtování",
+            ascending=False
+        ),
         use_container_width=True,
         hide_index=True,
     )
