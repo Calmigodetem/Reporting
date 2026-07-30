@@ -8,11 +8,15 @@ def balance_chart(df):
         df.sort_values("datum zaúčtování"),
         x="datum zaúčtování",
         y="zůstatek",
-        title="Vývoj zůstatku",
         markers=True,
+        title="Vývoj zůstatku",
     )
 
-    fig.update_layout(height=420)
+    fig.update_layout(
+        height=420,
+        margin=dict(l=10, r=10, t=50, b=10),
+        hovermode="x unified",
+    )
 
     return fig
 
@@ -37,7 +41,15 @@ def category_chart(df):
         title="Výdaje podle kategorií",
     )
 
-    fig.update_layout(height=420)
+    fig.update_traces(
+        textposition="inside",
+        textinfo="percent+label",
+    )
+
+    fig.update_layout(
+        height=420,
+        margin=dict(l=10, r=10, t=50, b=10),
+    )
 
     return fig
 
@@ -83,10 +95,13 @@ def monthly_chart(df):
         y=["Příjmy", "Výdaje"],
         barmode="group",
         text_auto=".2s",
-        title="Příjmy × Výdaje",
+        title="Příjmy × Výdaje po měsících",
     )
 
-    fig.update_layout(height=420)
+    fig.update_layout(
+        height=420,
+        margin=dict(l=10, r=10, t=50, b=10),
+    )
 
     return fig
 
@@ -115,6 +130,7 @@ def top_suppliers_chart(df):
 
     fig.update_layout(
         height=420,
+        margin=dict(l=10, r=10, t=50, b=10),
         yaxis=dict(categoryorder="total ascending"),
     )
 
@@ -145,7 +161,10 @@ def cashflow_chart(df):
         title="Cashflow po měsících",
     )
 
-    fig.update_layout(height=420)
+    fig.update_layout(
+        height=420,
+        margin=dict(l=10, r=10, t=50, b=10),
+    )
 
     return fig
 
@@ -168,6 +187,75 @@ def daily_expense_chart(df):
         title="Denní výdaje",
     )
 
-    fig.update_layout(height=420)
+    fig.update_layout(
+        height=420,
+        margin=dict(l=10, r=10, t=50, b=10),
+    )
+
+    return fig
+
+
+def cumulative_cashflow_chart(df):
+
+    tmp = df.sort_values("datum zaúčtování").copy()
+
+    tmp["Kumulované cashflow"] = tmp["částka platby"].cumsum()
+
+    fig = px.area(
+        tmp,
+        x="datum zaúčtování",
+        y="Kumulované cashflow",
+        title="Kumulované cashflow",
+    )
+
+    fig.update_layout(
+        height=420,
+        margin=dict(l=10, r=10, t=50, b=10),
+    )
+
+    return fig
+
+
+def weekday_expense_chart(df):
+
+    expenses = df[df["částka platby"] < 0].copy()
+
+    weekdays = {
+        0: "Po",
+        1: "Út",
+        2: "St",
+        3: "Čt",
+        4: "Pá",
+        5: "So",
+        6: "Ne",
+    }
+
+    expenses["Den"] = (
+        expenses["datum zaúčtování"]
+        .dt.dayofweek
+        .map(weekdays)
+    )
+
+    summary = (
+        expenses.groupby("Den")["částka platby"]
+        .sum()
+        .abs()
+        .reindex(
+            ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"]
+        )
+        .reset_index()
+    )
+
+    fig = px.bar(
+        summary,
+        x="Den",
+        y="částka platby",
+        title="Výdaje podle dne v týdnu",
+    )
+
+    fig.update_layout(
+        height=420,
+        margin=dict(l=10, r=10, t=50, b=10),
+    )
 
     return fig
