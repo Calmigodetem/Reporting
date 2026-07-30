@@ -14,14 +14,20 @@ uploaded_file = st.file_uploader(
     type=["csv", "xlsx"]
 )
 
-if uploaded_file:
+if uploaded_file is not None:
 
-    if uploaded_file.name.endswith(".csv"):
+    filename = uploaded_file.name.lower()
+
+    if filename.endswith(".csv"):
+
         try:
             df = pd.read_csv(uploaded_file, sep=";", encoding="utf-8")
-        except:
+        except UnicodeDecodeError:
+            uploaded_file.seek(0)
             df = pd.read_csv(uploaded_file, sep=";", encoding="cp1250")
+
     else:
+
         df = pd.read_excel(uploaded_file)
 
     st.success(f"Načteno {len(df)} řádků")
