@@ -250,7 +250,44 @@ def weekday_expense_chart(df):
         summary,
         x="Den",
         y="částka platby",
+        text_auto=".2s",
         title="Výdaje podle dne v týdnu",
+    )
+
+    fig.update_layout(
+        height=420,
+        margin=dict(l=10, r=10, t=50, b=10),
+    )
+
+    return fig
+
+
+def category_trend_chart(df):
+
+    expenses = df[df["částka platby"] < 0].copy()
+
+    expenses["Měsíc"] = (
+        expenses["datum zaúčtování"]
+        .dt.to_period("M")
+        .astype(str)
+    )
+
+    trend = (
+        expenses.groupby(
+            ["Měsíc", "Kategorie"]
+        )["částka platby"]
+        .sum()
+        .abs()
+        .reset_index()
+    )
+
+    fig = px.line(
+        trend,
+        x="Měsíc",
+        y="částka platby",
+        color="Kategorie",
+        markers=True,
+        title="Trend kategorií",
     )
 
     fig.update_layout(
