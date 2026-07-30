@@ -12,10 +12,7 @@ def balance_chart(df):
         markers=True,
     )
 
-    fig.update_layout(
-        height=420,
-        margin=dict(l=10, r=10, t=50, b=10),
-    )
+    fig.update_layout(height=420)
 
     return fig
 
@@ -36,16 +33,11 @@ def category_chart(df):
         summary,
         names="Kategorie",
         values="částka platby",
-        title="Výdaje podle kategorií",
         hole=0.45,
+        title="Výdaje podle kategorií",
     )
 
-    fig.update_traces(textposition="inside")
-
-    fig.update_layout(
-        height=420,
-        margin=dict(l=10, r=10, t=50, b=10),
-    )
+    fig.update_layout(height=420)
 
     return fig
 
@@ -75,7 +67,7 @@ def monthly_chart(df):
 
     monthly = pd.concat(
         [income, expense],
-        axis=1
+        axis=1,
     ).fillna(0)
 
     monthly.columns = [
@@ -90,20 +82,18 @@ def monthly_chart(df):
         x="Měsíc",
         y=["Příjmy", "Výdaje"],
         barmode="group",
-        title="Příjmy × Výdaje po měsících",
+        text_auto=".2s",
+        title="Příjmy × Výdaje",
     )
 
-    fig.update_layout(
-        height=420,
-        margin=dict(l=10, r=10, t=50, b=10),
-    )
+    fig.update_layout(height=420)
 
     return fig
 
 
 def top_suppliers_chart(df):
 
-    expenses = df[df["částka platby"] < 0].copy()
+    expenses = df[df["částka platby"] < 0]
 
     top = (
         expenses.groupby("protistrana")["částka platby"]
@@ -119,13 +109,65 @@ def top_suppliers_chart(df):
         x="částka platby",
         y="protistrana",
         orientation="h",
+        text_auto=".2s",
         title="TOP 10 příjemců plateb",
     )
 
     fig.update_layout(
         height=420,
-        margin=dict(l=10, r=10, t=50, b=10),
         yaxis=dict(categoryorder="total ascending"),
     )
+
+    return fig
+
+
+def cashflow_chart(df):
+
+    tmp = df.copy()
+
+    tmp["Měsíc"] = (
+        tmp["datum zaúčtování"]
+        .dt.to_period("M")
+        .astype(str)
+    )
+
+    monthly = (
+        tmp.groupby("Měsíc")["částka platby"]
+        .sum()
+        .reset_index()
+    )
+
+    fig = px.line(
+        monthly,
+        x="Měsíc",
+        y="částka platby",
+        markers=True,
+        title="Cashflow po měsících",
+    )
+
+    fig.update_layout(height=420)
+
+    return fig
+
+
+def daily_expense_chart(df):
+
+    expenses = df[df["částka platby"] < 0].copy()
+
+    daily = (
+        expenses.groupby("datum zaúčtování")["částka platby"]
+        .sum()
+        .abs()
+        .reset_index()
+    )
+
+    fig = px.bar(
+        daily,
+        x="datum zaúčtování",
+        y="částka platby",
+        title="Denní výdaje",
+    )
+
+    fig.update_layout(height=420)
 
     return fig
