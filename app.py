@@ -8,4 +8,10 @@ st.set_page_config(
 
 st.title("📊 Business Cockpit")
 
-st.write("Vítej v Business Cockpitu.")
+uploaded_file = st.file_uploader(
+    "Nahraj bankovní výpis (CSV nebo Excel)",
+    type=["csv", "xlsx"]
+)
+
+if uploaded_file:
+    st.success("Soubor byl úspěšně nahrán.")
