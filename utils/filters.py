@@ -18,11 +18,49 @@ def filter_data(df):
         months
     )
 
+    transaction_type = st.sidebar.selectbox(
+        "Typ transakcí",
+        ["Vše", "Příjmy", "Výdaje"]
+    )
+
+    categories = ["Vše"] + sorted(df["Kategorie"].dropna().unique().tolist())
+
+    selected_category = st.sidebar.selectbox(
+        "Kategorie",
+        categories
+    )
+
+    search = st.sidebar.text_input(
+        "Protistrana obsahuje"
+    )
+
     filtered = df[df["datum zaúčtování"].dt.year == selected_year]
 
     if selected_month != "Vše":
         filtered = filtered[
             filtered["datum zaúčtování"].dt.month == selected_month
+        ]
+
+    if transaction_type == "Příjmy":
+        filtered = filtered[
+            filtered["částka platby"] > 0
+        ]
+
+    if transaction_type == "Výdaje":
+        filtered = filtered[
+            filtered["částka platby"] < 0
+        ]
+
+    if selected_category != "Vše":
+        filtered = filtered[
+            filtered["Kategorie"] == selected_category
+        ]
+
+    if search:
+        filtered = filtered[
+            filtered["protistrana"]
+            .fillna("")
+            .str.contains(search, case=False)
         ]
 
     return filtered
