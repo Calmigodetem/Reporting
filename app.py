@@ -157,7 +157,7 @@ if uploaded_file:
                 cashflow_chart(df),
                 use_container_width=True,
             )
-                with tab2:
+        with tab2:
 
         left, right = st.columns(2)
 
