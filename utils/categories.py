@@ -1,114 +1,122 @@
 import re
+import pandas as pd
 
 
 RULES = {
-    "Marketing": [
-        "google",
-        "ads",
-        "adwords",
-        "meta",
-        "facebook",
-        "instagram",
-        "linkedin",
-        "seznam",
+    "Mzda": [
+        "mzda",
+        "salary",
+        "výplata",
+        "payroll",
     ],
-    "Software": [
-        "microsoft",
-        "adobe",
-        "jetbrains",
-        "github",
-        "gitlab",
-        "notion",
-        "atlassian",
-        "figma",
-        "slack",
-        "zoom",
-        "dropbox",
-        "canva",
-    ],
-    "AI": [
-        "openai",
-        "chatgpt",
-        "anthropic",
-        "claude",
-        "perplexity",
-        "gemini",
-    ],
-    "Cloud": [
-        "aws",
-        "amazon web services",
-        "azure",
-        "google cloud",
-        "digitalocean",
-        "ovh",
-    ],
-    "Energie": [
-        "čez",
-        "cez",
-        "eon",
-        "e.on",
-        "pre",
-        "innogy",
-    ],
-    "Telefon": [
-        "vodafone",
-        "t-mobile",
-        "tmobile",
-        "o2",
+    "Nájem": [
+        "nájem",
+        "rent",
+        "pronájem",
     ],
     "Potraviny": [
         "lidl",
+        "kaufland",
         "albert",
         "tesco",
-        "kaufland",
         "billa",
-        "penny",
         "globus",
-        "makro",
+        "penny",
+        "coop",
     ],
-    "Auto": [
+    "Restaurace": [
+        "restaurant",
+        "rest",
+        "pizza",
+        "bistro",
+        "kebab",
+        "mcdonald",
+        "burger",
+        "kfc",
+        "subway",
+        "costa",
+        "starbucks",
+    ],
+    "Palivo": [
         "shell",
         "omv",
-        "orlen",
-        "benzina",
         "mol",
+        "benzina",
+        "cepro",
+        "orlen",
     ],
-    "Cestování": [
-        "booking",
-        "airbnb",
-        "ryanair",
-        "wizz",
+    "Doprava": [
         "uber",
         "bolt",
+        "liftago",
+        "čd",
         "regiojet",
-        "české dráhy",
+        "dp",
+    ],
+    "Energie": [
+        "čez",
+        "pre",
+        "innogy",
+        "epet",
+        "energie",
+    ],
+    "Telefon a internet": [
+        "o2",
+        "t-mobile",
+        "vodafone",
+    ],
+    "Pojištění": [
+        "allianz",
+        "kooperativa",
+        "generali",
+        "čpp",
+        "uniqa",
     ],
     "Daně": [
         "finanční úřad",
         "financni urad",
         "fú",
     ],
-    "Pojištění": [
-        "kooperativa",
-        "allianz",
-        "čpp",
-        "cpp",
-        "generali",
+    "Bankovní poplatky": [
+        "poplatek",
+        "fee",
+        "úrok",
+        "interest",
     ],
-    "Zdravotní pojištění": [
-        "vzp",
-        "ozp",
+    "Zábava": [
+        "cinema",
+        "kino",
+        "netflix",
+        "spotify",
+        "hbo",
+        "disney",
+        "steam",
+        "xbox",
+        "playstation",
     ],
-    "Odvody": [
-        "čssz",
-        "cssz",
+    "Nákupy": [
+        "alza",
+        "mall",
+        "datart",
+        "planeo",
+        "ikea",
+        "hornbach",
+        "obi",
+        "bauhaus",
+    ],
+    "Zdraví": [
+        "lékárna",
+        "dr max",
+        "benu",
+        "doctor",
+        "hospital",
     ],
 }
 
 
-def normalize(text):
+def _clean(text):
 
-    if text is None:
+    if pd.isna(text):
         return ""
 
     text = str(text).lower()
@@ -119,29 +127,33 @@ def normalize(text):
 
 def categorize(df):
 
-    df["Kategorie"] = "Ostatní"
+    df = df.copy()
 
-    for index, row in df.iterrows():
+    categories = []
 
-        text = normalize(
-            str(row.get("protistrana", ""))
+    for _, row in df.iterrows():
+
+        text = (
+            _clean(row.get("protistrana", ""))
             + " "
-            + str(row.get("popis transakce", ""))
+            + _clean(row.get("popis transakce", ""))
         )
 
-        assigned = False
+        category = "Ostatní"
 
-        for category, keywords in RULES.items():
+        for name, words in RULES.items():
 
-            if assigned:
+            if any(word in text for word in words):
+                category = name
                 break
 
-            for keyword in keywords:
+        amount = row["částka platby"]
 
-                if keyword in text:
+        if amount > 0 and category == "Ostatní":
+            category = "Příjem"
 
-                    df.at[index, "Kategorie"] = category
-                    assigned = True
-                    break
+        categories.append(category)
+
+    df["Kategorie"] = categories
 
     return df
