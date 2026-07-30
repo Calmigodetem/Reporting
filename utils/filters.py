@@ -3,116 +3,106 @@ import streamlit as st
 
 def filter_data(df):
 
-    years = sorted(
-        df["datum zaúčtování"]
-        .dt.year
-        .dropna()
-        .unique()
-    )
+    with st.sidebar:
 
-    selected_year = st.sidebar.selectbox(
-        "Rok",
-        years,
-        index=len(years) - 1,
-    )
+        st.subheader("Filtry")
 
-    months = ["Vše"] + list(range(1, 13))
+        min_date = df["datum zaúčtování"].min().date()
+        max_date = df["datum zaúčtování"].max().date()
 
-    selected_month = st.sidebar.selectbox(
-        "Měsíc",
-        months,
-    )
-
-    transaction_type = st.sidebar.selectbox(
-        "Typ transakcí",
-        [
-            "Vše",
-            "Příjmy",
-            "Výdaje",
-        ],
-    )
-
-    categories = (
-        ["Vše"]
-        + sorted(
-            df["Kategorie"]
-            .dropna()
-            .unique()
-            .tolist()
+        date_range = st.date_input(
+            "Období",
+            value=(min_date, max_date),
+            min_value=min_date,
+            max_value=max_date,
         )
-    )
 
-    selected_category = st.sidebar.selectbox(
-        "Kategorie",
-        categories,
-    )
+        if len(date_range) == 2:
+            start_date, end_date = date_range
 
-    min_amount = float(df["částka platby"].min())
-    max_amount = float(df["částka platby"].max())
+            df = df[
+                (df["datum zaúčtování"].dt.date >= start_date)
+                & (df["datum zaúčtování"].dt.date <= end_date)
+            ]
 
-    amount_range = st.sidebar.slider(
-        "Rozsah částky",
-        min_value=min_amount,
-        max_value=max_amount,
-        value=(min_amount, max_amount),
-    )
+        if "Kategorie" in df.columns:
 
-    search = st.sidebar.text_input(
-        "Hledat protistranu",
-    )
-
-    filtered = df[
-        df["datum zaúčtování"].dt.year == selected_year
-    ]
-
-    if selected_month != "Vše":
-        filtered = filtered[
-            filtered["datum zaúčtování"].dt.month
-            == selected_month
-        ]
-
-    if transaction_type == "Příjmy":
-        filtered = filtered[
-            filtered["částka platby"] > 0
-        ]
-
-    elif transaction_type == "Výdaje":
-        filtered = filtered[
-            filtered["částka platby"] < 0
-        ]
-
-    filtered = filtered[
-        (
-            filtered["částka platby"]
-            >= amount_range[0]
-        )
-        &
-        (
-            filtered["částka platby"]
-            <= amount_range[1]
-        )
-    ]
-
-    if selected_category != "Vše":
-        filtered = filtered[
-            filtered["Kategorie"]
-            == selected_category
-        ]
-
-    if search:
-
-        filtered = filtered[
-            filtered["protistrana"]
-            .fillna("")
-            .str.contains(
-                search,
-                case=False,
+            categories = sorted(
+                df["Kategorie"]
+                .dropna()
+                .unique()
+                .tolist()
             )
+
+            selected = st.multiselect(
+                "Kategorie",
+                categories,
+                default=categories,
+            )
+
+            if selected:
+                df = df[
+                    df["Kategorie"].isin(selected)
+                ]
+
+        if "protistrana" in df.columns:
+
+            partners = sorted(
+                df["protistrana"]
+                .fillna("")
+                .unique()
+                .tolist()
+            )
+
+            selected = st.multiselect(
+                "Protistrana",
+                partners,
+                default=partners,
+            )
+
+            if selected:
+                df = df[
+                    df["protistrana"].isin(selected)
+                ]
+
+        min_amount = float(df["částka platby"].min())
+        max_amount = float(df["částka platby"].max())
+
+        amount = st.slider(
+            "Částka",
+            min_value=min_amount,
+            max_value=max_amount,
+            value=(min_amount, max_amount),
+        )
+
+        df = df[
+            (df["částka platby"] >= amount[0])
+            & (df["částka platby"] <= amount[1])
         ]
 
-    filtered = filtered.sort_values(
-        "datum zaúčtování",
-        ascending=False,
-    )
+        search = st.text_input(
+            "Hledat",
+            placeholder="Dodavatel nebo popis...",
+        )
 
-    return filtered
+        if search:
+
+            text = (
+                df["protistrana"]
+                .fillna("")
+                .astype(str)
+                + " "
+                + df["popis transakce"]
+                .fillna("")
+                .astype(str)
+            )
+
+            df = df[
+                text.str.contains(
+                    search,
+                    case=False,
+                    na=False,
+                )
+            ]
+
+    return df.reset_index(drop=True)
