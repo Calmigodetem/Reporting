@@ -2,7 +2,12 @@ import streamlit as st
 
 from utils.loader import load_file
 from utils.metrics import calculate_metrics
-from utils.charts import balance_chart, category_chart
+from utils.charts import (
+    balance_chart,
+    category_chart,
+    monthly_chart,
+    top_suppliers_chart,
+)
 from utils.filters import filter_data
 from utils.categories import categorize
 
@@ -40,15 +45,29 @@ if uploaded_file:
     c3.metric("📉 Výdaje", czk(metrics["expense"]))
     c4.metric("📊 Cashflow", czk(metrics["cashflow"]))
 
-    st.plotly_chart(
-        balance_chart(df),
-        use_container_width=True
-    )
+    left, right = st.columns(2)
 
-    st.plotly_chart(
-        category_chart(df),
-        use_container_width=True
-    )
+    with left:
+        st.plotly_chart(
+            balance_chart(df),
+            use_container_width=True,
+        )
+
+        st.plotly_chart(
+            monthly_chart(df),
+            use_container_width=True,
+        )
+
+    with right:
+        st.plotly_chart(
+            category_chart(df),
+            use_container_width=True,
+        )
+
+        st.plotly_chart(
+            top_suppliers_chart(df),
+            use_container_width=True,
+        )
 
     st.dataframe(
         df[
@@ -61,7 +80,7 @@ if uploaded_file:
             ]
         ].sort_values(
             "datum zaúčtování",
-            ascending=False
+            ascending=False,
         ),
         use_container_width=True,
         hide_index=True,
