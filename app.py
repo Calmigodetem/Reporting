@@ -7,6 +7,8 @@ from utils.charts import (
     category_chart,
     monthly_chart,
     top_suppliers_chart,
+    cashflow_chart,
+    daily_expense_chart,
 )
 from utils.filters import filter_data
 from utils.categories import categorize
@@ -14,7 +16,7 @@ from utils.categories import categorize
 st.set_page_config(
     page_title="Business Cockpit",
     page_icon="📊",
-    layout="wide"
+    layout="wide",
 )
 
 
@@ -86,6 +88,7 @@ if uploaded_file:
     left, right = st.columns(2)
 
     with left:
+
         st.plotly_chart(
             balance_chart(df),
             use_container_width=True,
@@ -96,7 +99,13 @@ if uploaded_file:
             use_container_width=True,
         )
 
+        st.plotly_chart(
+            cashflow_chart(df),
+            use_container_width=True,
+        )
+
     with right:
+
         st.plotly_chart(
             category_chart(df),
             use_container_width=True,
@@ -104,6 +113,11 @@ if uploaded_file:
 
         st.plotly_chart(
             top_suppliers_chart(df),
+            use_container_width=True,
+        )
+
+        st.plotly_chart(
+            daily_expense_chart(df),
             use_container_width=True,
         )
 
@@ -118,7 +132,8 @@ if uploaded_file:
                 "protistrana",
                 "popis transakce",
             ]
-        ].sort_values(
+        ]
+        .sort_values(
             "datum zaúčtování",
             ascending=False,
         ),
