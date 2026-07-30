@@ -2,17 +2,17 @@ import pandas as pd
 import plotly.express as px
 
 
-def _layout(fig, height=420):
+def _layout(fig):
 
     fig.update_layout(
-        height=height,
+        template="plotly_white",
+        height=420,
         margin=dict(
             l=10,
             r=10,
             t=50,
             b=10,
         ),
-        template="plotly_white",
         hovermode="x unified",
         legend_title=None,
     )
@@ -108,37 +108,6 @@ def monthly_chart(df):
     return _layout(fig)
 
 
-def top_suppliers_chart(df):
-
-    expenses = df[df["částka platby"] < 0]
-
-    top = (
-        expenses.groupby("protistrana")["částka platby"]
-        .sum()
-        .abs()
-        .sort_values(ascending=False)
-        .head(10)
-        .reset_index()
-    )
-
-    fig = px.bar(
-        top,
-        x="částka platby",
-        y="protistrana",
-        orientation="h",
-        text_auto=".2s",
-        title="TOP 10 příjemců",
-    )
-
-    fig.update_layout(
-        yaxis=dict(
-            categoryorder="total ascending"
-        )
-    )
-
-    return _layout(fig)
-
-
 def cashflow_chart(df):
 
     tmp = df.copy()
@@ -166,43 +135,59 @@ def cashflow_chart(df):
     return _layout(fig)
 
 
-def daily_expense_chart(df):
-
-    expenses = df[df["částka platby"] < 0]
-
-    daily = (
-        expenses.groupby("datum zaúčtování")["částka platby"]
-        .sum()
-        .abs()
-        .reset_index()
-    )
-
-    fig = px.bar(
-        daily,
-        x="datum zaúčtování",
-        y="částka platby",
-        title="Denní výdaje",
-    )
-
-    return _layout(fig)
-
-
 def cumulative_cashflow_chart(df):
 
-    tmp = (
-        df.sort_values("datum zaúčtování")
-        .copy()
-    )
+    tmp = df.sort_values(
+        "datum zaúčtování"
+    ).copy()
 
-    tmp["Kumulované cashflow"] = (
-        tmp["částka platby"].cumsum()
+    tmp["Cashflow"] = (
+        tmp["částka platby"]
+        .cumsum()
     )
 
     fig = px.area(
         tmp,
         x="datum zaúčtování",
-        y="Kumulované cashflow",
+        y="Cashflow",
         title="Kumulované cashflow",
+    )
+
+    return _layout(fig)
+
+
+def top_suppliers_chart(df):
+
+    expenses = df[
+        df["částka platby"] < 0
+    ]
+
+    top = (
+        expenses.groupby(
+            "protistrana"
+        )["částka platby"]
+        .sum()
+        .abs()
+        .sort_values(
+            ascending=False
+        )
+        .head(10)
+        .reset_index()
+    )
+
+    fig = px.bar(
+        top,
+        x="částka platby",
+        y="protistrana",
+        orientation="h",
+        text_auto=".2s",
+        title="TOP 10 dodavatelů",
+    )
+
+    fig.update_layout(
+        yaxis=dict(
+            categoryorder="total ascending"
+        )
     )
 
     return _layout(fig)
@@ -210,7 +195,9 @@ def cumulative_cashflow_chart(df):
 
 def weekday_expense_chart(df):
 
-    expenses = df[df["částka platby"] < 0].copy()
+    tmp = df[
+        df["částka platby"] < 0
+    ].copy()
 
     mapping = {
         0: "Po",
@@ -222,14 +209,14 @@ def weekday_expense_chart(df):
         6: "Ne",
     }
 
-    expenses["Den"] = (
-        expenses["datum zaúčtování"]
+    tmp["Den"] = (
+        tmp["datum zaúčtování"]
         .dt.dayofweek
         .map(mapping)
     )
 
     summary = (
-        expenses.groupby("Den")["částka platby"]
+        tmp.groupby("Den")["částka platby"]
         .sum()
         .abs()
         .reindex(
@@ -259,16 +246,18 @@ def weekday_expense_chart(df):
 
 def category_trend_chart(df):
 
-    expenses = df[df["částka platby"] < 0].copy()
+    tmp = df[
+        df["částka platby"] < 0
+    ].copy()
 
-    expenses["Měsíc"] = (
-        expenses["datum zaúčtování"]
+    tmp["Měsíc"] = (
+        tmp["datum zaúčtování"]
         .dt.to_period("M")
         .astype(str)
     )
 
     trend = (
-        expenses.groupby(
+        tmp.groupby(
             [
                 "Měsíc",
                 "Kategorie",
@@ -286,32 +275,6 @@ def category_trend_chart(df):
         color="Kategorie",
         markers=True,
         title="Trend kategorií",
-    )
-
-    return _layout(fig)
-
-
-def income_vs_expense_chart(df):
-
-    tmp = df.copy()
-
-    tmp["Směr"] = tmp["částka platby"].apply(
-        lambda x: "Příjem"
-        if x > 0
-        else "Výdaj"
-    )
-
-    tmp["Hodnota"] = (
-        tmp["částka platby"].abs()
-    )
-
-    fig = px.histogram(
-        tmp,
-        x="Kategorie",
-        y="Hodnota",
-        color="Směr",
-        barmode="group",
-        title="Příjmy vs výdaje podle kategorií",
     )
 
     return _layout(fig)
