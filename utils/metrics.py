@@ -4,12 +4,12 @@ import pandas as pd
 def calculate_metrics(df):
 
     balance = (
-        df["zůstatek"].iloc[-1]
-        if "zůstatek" in df.columns and len(df)
+        float(df["zůstatek"].iloc[-1])
+        if len(df)
         else 0
     )
 
-    income = (
+    income = float(
         df.loc[
             df["částka platby"] > 0,
             "částka platby",
@@ -17,10 +17,12 @@ def calculate_metrics(df):
     )
 
     expense = abs(
-        df.loc[
-            df["částka platby"] < 0,
-            "částka platby",
-        ].sum()
+        float(
+            df.loc[
+                df["částka platby"] < 0,
+                "částka platby",
+            ].sum()
+        )
     )
 
     cashflow = income - expense
@@ -28,41 +30,86 @@ def calculate_metrics(df):
     transactions = len(df)
 
     avg_income = (
-        df.loc[
-            df["částka platby"] > 0,
-            "částka platby",
-        ].mean()
+        float(
+            df.loc[
+                df["částka platby"] > 0,
+                "částka platby",
+            ].mean()
+        )
         if income
         else 0
     )
 
-    avg_expense = abs(
-        df.loc[
-            df["částka platby"] < 0,
-            "částka platby",
-        ].mean()
-    ) if expense else 0
+    avg_expense = (
+        abs(
+            float(
+                df.loc[
+                    df["částka platby"] < 0,
+                    "částka platby",
+                ].mean()
+            )
+        )
+        if expense
+        else 0
+    )
 
     biggest_income = (
-        df.loc[
-            df["částka platby"] > 0,
-            "částka platby",
-        ].max()
+        float(
+            df.loc[
+                df["částka platby"] > 0,
+                "částka platby",
+            ].max()
+        )
         if income
         else 0
     )
 
-    biggest_expense = abs(
-        df.loc[
-            df["částka platby"] < 0,
-            "částka platby",
-        ].min()
-    ) if expense else 0
+    biggest_expense = (
+        abs(
+            float(
+                df.loc[
+                    df["částka platby"] < 0,
+                    "částka platby",
+                ].min()
+            )
+        )
+        if expense
+        else 0
+    )
 
     active_days = (
         df["datum zaúčtování"]
         .dt.date
         .nunique()
+    )
+
+    income_transactions = int(
+        (df["částka platby"] > 0).sum()
+    )
+
+    expense_transactions = int(
+        (df["částka platby"] < 0).sum()
+    )
+
+    average_daily_expense = (
+        expense / active_days
+        if active_days
+        else 0
+    )
+
+    average_daily_income = (
+        income / active_days
+        if active_days
+        else 0
+    )
+
+    savings_rate = (
+        round(
+            (cashflow / income) * 100,
+            1,
+        )
+        if income
+        else 0
     )
 
     return {
@@ -76,4 +123,9 @@ def calculate_metrics(df):
         "biggest_income": biggest_income,
         "biggest_expense": biggest_expense,
         "active_days": active_days,
+        "income_transactions": income_transactions,
+        "expense_transactions": expense_transactions,
+        "average_daily_income": average_daily_income,
+        "average_daily_expense": average_daily_expense,
+        "savings_rate": savings_rate,
     }
