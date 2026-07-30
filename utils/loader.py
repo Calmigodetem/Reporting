@@ -2,49 +2,72 @@ import pandas as pd
 import streamlit as st
 
 
-REQUIRED_COLUMNS = [
-    "datum zaúčtování",
-    "částka platby",
-]
+def normalize_columns(df):
 
-
-def _normalize_columns(df):
+    # odstranění duplicitních názvů
+    df = df.loc[:, ~df.columns.duplicated()]
 
     df.columns = (
-        df.columns.astype(str)
+        df.columns
+        .astype(str)
         .str.strip()
         .str.lower()
     )
 
     rename = {
+
+        # datum
         "datum": "datum zaúčtování",
-        "datum zauctovani": "datum zaúčtování",
-        "datum zaúčtování": "datum zaúčtování",
         "date": "datum zaúčtování",
+        "datum zaúčtovani": "datum zaúčtování",
+        "datum zaúčtování": "datum zaúčtování",
+
+        # částka
         "částka": "částka platby",
         "castka": "částka platby",
-        "částka platby": "částka platby",
         "amount": "částka platby",
-        "balance": "zůstatek",
+        "částka platby": "částka platby",
+
+        # zůstatek
+        "zustatek": "zůstatek",
         "zůstatek": "zůstatek",
+        "balance": "zůstatek",
+
+        # popis
         "popis": "popis transakce",
-        "poznámka": "popis transakce",
         "detail": "popis transakce",
-        "protistrana": "protistrana",
+        "poznámka": "popis transakce",
+        "text": "popis transakce",
+
+        # protistrana
         "partner": "protistrana",
+        "protiucet": "protistrana",
+        "protistrana": "protistrana",
         "název protiúčtu": "protistrana",
     }
 
-    df = df.rename(columns=rename)
+    df = df.rename(
+        columns=rename
+    )
+
+    # znovu kontrola po rename
+    df = df.loc[:, ~df.columns.duplicated()]
 
     return df
 
 
-def load_file(uploaded_file):
+def read_file(uploaded_file):
 
     name = uploaded_file.name.lower()
 
     if name.endswith(".csv"):
+
+        encodings = [
+            "utf-8",
+            "utf-8-sig",
+            "cp1250",
+            "latin1",
+        ]
 
         separators = [
             ";",
@@ -52,55 +75,121 @@ def load_file(uploaded_file):
             "\t",
         ]
 
-        df = None
+        for enc in encodings:
 
-        for sep in separators:
-            try:
-                uploaded_file.seek(0)
-                tmp = pd.read_csv(
-                    uploaded_file,
-                    sep=sep,
-                    encoding="utf-8",
-                )
+            for sep in separators:
 
-                if len(tmp.columns) > 1:
-                    df = tmp
-                    break
+                try:
 
-            except Exception:
-                pass
+                    uploaded_file.seek(0)
 
-        if df is None:
-            uploaded_file.seek(0)
-            df = pd.read_csv(
-                uploaded_file,
-                sep=";",
-                encoding="cp1250",
-            )
+                    df = pd.read_csv(
+                        uploaded_file,
+                        sep=sep,
+                        encoding=enc,
+                    )
+
+                    if len(df.columns) > 1:
+                        return df
+
+                except Exception:
+                    pass
+
+
+        raise ValueError(
+            "CSV soubor nelze načíst."
+        )
+
 
     elif name.endswith(".xlsx"):
 
-        df = pd.read_excel(uploaded_file)
+        return pd.read_excel(
+            uploaded_file
+        )
+
 
     else:
 
-        st.error("Nepodporovaný formát.")
+        raise ValueError(
+            "Nepodporovaný formát."
+        )
+
+
+def clean_amount(value):
+
+    if pd.isna(value):
+        return 0
+
+    value = str(value)
+
+    value = (
+        value
+        .replace(" ", "")
+        .replace("\xa0", "")
+        .replace(",", ".")
+    )
+
+    value = (
+        value
+        .replace("Kč", "")
+        .replace("CZK", "")
+    )
+
+    try:
+        return float(value)
+
+    except:
+        return 0
+
+
+def load_file(uploaded_file):
+
+    try:
+
+        df = read_file(
+            uploaded_file
+        )
+
+    except Exception as e:
+
+        st.error(
+            f"Chyba načtení souboru: {e}"
+        )
+
         st.stop()
 
-    df = _normalize_columns(df)
+
+    df = normalize_columns(df)
+
+
+    required = [
+        "datum zaúčtování",
+        "částka platby",
+    ]
+
 
     missing = [
-        c for c in REQUIRED_COLUMNS
+        c
+        for c in required
         if c not in df.columns
     ]
+
 
     if missing:
 
         st.error(
-            "Chybí povinné sloupce:\n\n"
-            + "\n".join(missing)
+            "Chybí sloupce: "
+            + ", ".join(missing)
         )
+
+        st.write(
+            "Dostupné sloupce:",
+            list(df.columns)
+        )
+
         st.stop()
+
+
 
     df["datum zaúčtování"] = pd.to_datetime(
         df["datum zaúčtování"],
@@ -108,30 +197,18 @@ def load_file(uploaded_file):
         dayfirst=True,
     )
 
+
     df["částka platby"] = (
         df["částka platby"]
-        .astype(str)
-        .str.replace(" ", "", regex=False)
-        .str.replace(",", ".", regex=False)
+        .apply(clean_amount)
     )
 
-    df["částka platby"] = pd.to_numeric(
-        df["částka platby"],
-        errors="coerce",
-    )
 
     if "zůstatek" in df.columns:
 
         df["zůstatek"] = (
             df["zůstatek"]
-            .astype(str)
-            .str.replace(" ", "", regex=False)
-            .str.replace(",", ".", regex=False)
-        )
-
-        df["zůstatek"] = pd.to_numeric(
-            df["zůstatek"],
-            errors="coerce",
+            .apply(clean_amount)
         )
 
     else:
@@ -141,21 +218,39 @@ def load_file(uploaded_file):
             .cumsum()
         )
 
+
     if "protistrana" not in df.columns:
+
         df["protistrana"] = ""
 
+
     if "popis transakce" not in df.columns:
+
         df["popis transakce"] = ""
+
 
     df = df.dropna(
         subset=[
-            "datum zaúčtování",
-            "částka platby",
+            "datum zaúčtování"
         ]
     )
 
+
     df = df.sort_values(
         "datum zaúčtování"
-    ).reset_index(drop=True)
+    )
+
+
+    df = df.reset_index(
+        drop=True
+    )
+
+
+    # poslední ochrana proti duplicitám
+    df = df.loc[
+        :,
+        ~df.columns.duplicated()
+    ]
+
 
     return df
