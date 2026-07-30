@@ -14,7 +14,7 @@ from utils.charts import (
 )
 from utils.filters import filter_data
 from utils.categories import categorize
-
+from utils.export import export_excel, export_csv
 
 st.set_page_config(
     page_title="Business Cockpit",
@@ -22,9 +22,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
-
-# ---------- CSS ----------
 
 try:
     with open("assets/style.css", encoding="utf-8") as f:
@@ -50,7 +47,7 @@ st.title("📊 Business Cockpit")
 st.caption("Finanční dashboard")
 
 uploaded_file = st.file_uploader(
-    "Nahraj CSV nebo XLSX",
+    "Nahraj bankovní výpis",
     type=["csv", "xlsx"],
 )
 
@@ -62,7 +59,6 @@ if uploaded_file:
 
     df = filter_data(df)
 
-    # zpřístupnění pro pages/*
     st.session_state["df"] = df
 
     metrics = calculate_metrics(df)
@@ -161,8 +157,7 @@ if uploaded_file:
                 cashflow_chart(df),
                 use_container_width=True,
             )
-
-    with tab2:
+                with tab2:
 
         left, right = st.columns(2)
 
@@ -201,6 +196,7 @@ if uploaded_file:
             )
 
             if ratio > 0.80:
+
                 st.warning(
                     "Výdaje tvoří více než 80 % příjmů."
                 )
@@ -210,6 +206,7 @@ if uploaded_file:
             and metrics["biggest_expense"]
             > metrics["avg_expense"] * 3
         ):
+
             st.info(
                 "Byla nalezena mimořádně vysoká výdajová transakce."
             )
@@ -219,29 +216,41 @@ if uploaded_file:
         recommendations = []
 
         if metrics["cashflow"] < 0:
+
             recommendations.append(
                 "• Zaměřte se na snížení provozních nákladů."
             )
 
         if metrics["savings_rate"] < 10:
+
             recommendations.append(
                 "• Nízká míra úspor. Doporučujeme analyzovat hlavní nákladové položky."
             )
 
         if metrics["transactions"] > 500:
+
             recommendations.append(
-                "• Vysoký počet transakcí. Zvažte jejich automatickou kategorizaci."
+                "• Vysoký počet transakcí. Zvažte automatickou kategorizaci."
+            )
+
+        if metrics["active_days"] < 10:
+
+            recommendations.append(
+                "• Data obsahují poměrně krátké sledované období."
             )
 
         if not recommendations:
+
             recommendations.append(
                 "• Finanční situace je stabilní."
             )
 
         for item in recommendations:
-            st.markdown(item)
 
-    with tab3:
+            st.markdown(item)
+                with tab3:
+
+        st.subheader("📄 Přehled transakcí")
 
         columns = [
             "datum zaúčtování",
@@ -267,8 +276,144 @@ if uploaded_file:
             hide_index=True,
         )
 
-else:
+        st.divider()
+
+        st.subheader("📤 Export")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            st.download_button(
+                "📗 Export do Excelu",
+                data=export_excel(df),
+                file_name="business_cockpit.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+            )
+
+        with col2:
+
+            st.download_button(
+                "📄 Export CSV",
+                data=export_csv(df),
+                file_name="business_cockpit.csv",
+                mime="text/csv",
+                use_container_width=True,
+            )
+
+        st.divider()
+
+        st.subheader("📈 Souhrn")
+
+        left, right = st.columns(2)
+
+        with left:
+
+            st.metric(
+                "Průměrný příjem",
+                czk(metrics["avg_income"]),
+            )
+
+            st.metric(
+                "Medián příjmů",
+                czk(metrics["median_income"]),
+            )
+
+        with right:
+
+            st.metric(
+                "Průměrný výdaj",
+                czk(metrics["avg_expense"]),
+            )
+
+            st.metric(
+                "Medián výdajů",
+                czk(metrics["median_expense"]),
+            )
+            else:
 
     st.info(
-        "Nahraj bankovní výpis ve formátu CSV nebo XLSX."
+        """
+Nahraj bankovní výpis ve formátu **CSV** nebo **XLSX**.
+
+### Podporované banky
+
+- Česká spořitelna
+- ČSOB
+- Komerční banka
+- Raiffeisenbank
+- Fio banka
+- MONETA Money Bank
+- Air Bank
+- UniCredit Bank
+
+Po načtení dat získáš:
+
+- 📊 Dashboard
+- 💰 KPI
+- 📈 Cashflow
+- 📉 Analýzu kategorií
+- 🏢 TOP dodavatele
+- 📅 Měsíční přehled
+- 🤖 AI CFO doporučení
+- 📤 Export do Excelu a CSV
+
+Další analýzy jsou dostupné v levém menu v sekci **Pages**.
+"""
     )
+
+st.sidebar.divider()
+
+st.sidebar.markdown("## 📊 Business Cockpit")
+
+if "df" in st.session_state:
+
+    current_df = st.session_state["df"]
+
+    st.sidebar.success("Data načtena")
+
+    st.sidebar.metric(
+        "Transakcí",
+        len(current_df),
+    )
+
+    st.sidebar.metric(
+        "Období",
+        current_df["datum zaúčtování"]
+        .dt.date.nunique(),
+    )
+
+    st.sidebar.metric(
+        "Kategorie",
+        current_df["Kategorie"]
+        .nunique(),
+    )
+
+    if "protistrana" in current_df.columns:
+
+        st.sidebar.metric(
+            "Partnerů",
+            current_df["protistrana"]
+            .nunique(),
+        )
+
+    if st.sidebar.button(
+        "🗑 Vymazat data",
+        use_container_width=True,
+    ):
+
+        del st.session_state["df"]
+
+        st.rerun()
+
+else:
+
+    st.sidebar.info(
+        "Nejsou načtena žádná data."
+    )
+
+st.sidebar.divider()
+
+st.sidebar.caption("Business Cockpit")
+st.sidebar.caption("Version 1.0")
