@@ -1,6 +1,8 @@
 import pandas as pd
+import streamlit as st
 
 
+@st.cache_data(show_spinner=False)
 def load_file(uploaded_file):
 
     if uploaded_file.name.lower().endswith(".csv"):
@@ -22,20 +24,14 @@ def load_file(uploaded_file):
         errors="coerce"
     )
 
-    df["částka platby"] = (
-        df["částka platby"]
-        .astype(str)
-        .str.replace(" ", "", regex=False)
-        .str.replace(",", ".", regex=False)
-        .astype(float)
-    )
+    for column in ["částka platby", "zůstatek"]:
 
-    df["zůstatek"] = (
-        df["zůstatek"]
-        .astype(str)
-        .str.replace(" ", "", regex=False)
-        .str.replace(",", ".", regex=False)
-        .astype(float)
-    )
+        df[column] = (
+            df[column]
+            .astype(str)
+            .str.replace(" ", "", regex=False)
+            .str.replace(",", ".", regex=False)
+            .astype(float)
+        )
 
     return df
