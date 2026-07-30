@@ -3,126 +3,92 @@ import pandas as pd
 
 
 RULES = {
-    "Mzda": [
-        "mzda",
-        "salary",
-        "výplata",
-        "payroll",
-    ],
-    "Nájem": [
-        "nájem",
-        "rent",
-        "pronájem",
-    ],
     "Potraviny": [
-        "lidl",
-        "kaufland",
-        "albert",
-        "tesco",
-        "billa",
-        "globus",
-        "penny",
-        "coop",
+        "lidl", "kaufland", "albert", "tesco",
+        "billa", "globus", "penny",
     ],
+
     "Restaurace": [
-        "restaurant",
-        "rest",
-        "pizza",
-        "bistro",
-        "kebab",
-        "mcdonald",
-        "burger",
-        "kfc",
-        "subway",
-        "costa",
-        "starbucks",
+        "restaurant", "rest", "pizza",
+        "bistro", "kebab", "burger",
+        "mcdonald", "kfc",
     ],
+
     "Palivo": [
-        "shell",
-        "omv",
-        "mol",
-        "benzina",
-        "cepro",
-        "orlen",
+        "shell", "omv", "mol",
+        "benzina", "orlen",
     ],
+
     "Doprava": [
-        "uber",
-        "bolt",
-        "liftago",
-        "čd",
-        "regiojet",
-        "dp",
+        "uber", "bolt", "regiojet",
+        "ceske drahy", "čd",
     ],
+
     "Energie": [
-        "čez",
-        "pre",
+        "cez", "čez", "pre",
         "innogy",
-        "epet",
-        "energie",
     ],
-    "Telefon a internet": [
+
+    "Telefon": [
         "o2",
-        "t-mobile",
         "vodafone",
+        "t-mobile",
     ],
+
+    "Software": [
+        "microsoft",
+        "google",
+        "apple",
+        "openai",
+        "github",
+    ],
+
     "Pojištění": [
         "allianz",
         "kooperativa",
         "generali",
-        "čpp",
-        "uniqa",
     ],
-    "Daně": [
-        "finanční úřad",
-        "financni urad",
-        "fú",
-    ],
-    "Bankovní poplatky": [
-        "poplatek",
-        "fee",
-        "úrok",
-        "interest",
-    ],
-    "Zábava": [
-        "cinema",
-        "kino",
-        "netflix",
-        "spotify",
-        "hbo",
-        "disney",
-        "steam",
-        "xbox",
-        "playstation",
-    ],
+
     "Nákupy": [
         "alza",
-        "mall",
         "datart",
-        "planeo",
         "ikea",
         "hornbach",
-        "obi",
-        "bauhaus",
     ],
-    "Zdraví": [
-        "lékárna",
-        "dr max",
-        "benu",
-        "doctor",
-        "hospital",
+
+    "Ostatní služby": [
+        "service",
+        "cloud",
+        "hosting",
     ],
 }
 
 
 def _clean(text):
 
-    if pd.isna(text):
+    if text is None:
         return ""
 
-    text = str(text).lower()
-    text = re.sub(r"\s+", " ", text)
+    if isinstance(text, (list, tuple)):
+        text = " ".join(
+            str(x)
+            for x in text
+        )
 
-    return text
+    if pd.isna(text) is True:
+        return ""
+
+    text = str(text)
+
+    text = text.lower()
+
+    text = re.sub(
+        r"\s+",
+        " ",
+        text,
+    )
+
+    return text.strip()
 
 
 def categorize(df):
@@ -134,25 +100,50 @@ def categorize(df):
     for _, row in df.iterrows():
 
         text = (
-            _clean(row.get("protistrana", ""))
+            _clean(
+                row.get(
+                    "protistrana",
+                    ""
+                )
+            )
             + " "
-            + _clean(row.get("popis transakce", ""))
+            +
+            _clean(
+                row.get(
+                    "popis transakce",
+                    ""
+                )
+            )
         )
 
         category = "Ostatní"
 
-        for name, words in RULES.items():
+        for name, keywords in RULES.items():
 
-            if any(word in text for word in words):
-                category = name
+            for keyword in keywords:
+
+                if keyword in text:
+
+                    category = name
+                    break
+
+            if category != "Ostatní":
                 break
 
-        amount = row["částka platby"]
+        try:
 
-        if amount > 0 and category == "Ostatní":
-            category = "Příjem"
+            if (
+                row["částka platby"] > 0
+                and category == "Ostatní"
+            ):
+                category = "Příjem"
+
+        except Exception:
+            pass
+
 
         categories.append(category)
+
 
     df["Kategorie"] = categories
 
