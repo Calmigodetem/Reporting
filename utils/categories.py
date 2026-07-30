@@ -1,77 +1,147 @@
-def categorize(df):
+import re
 
-    rules = {
-        "Google": "Marketing",
-        "Meta": "Marketing",
-        "Facebook": "Marketing",
-        "LinkedIn": "Marketing",
-        "Seznam": "Marketing",
-        "OpenAI": "AI",
-        "Anthropic": "AI",
-        "Claude": "AI",
-        "Perplexity": "AI",
-        "Dropbox": "Software",
-        "Microsoft": "Software",
-        "Adobe": "Software",
-        "JetBrains": "Software",
-        "Atlassian": "Software",
-        "Figma": "Software",
-        "Canva": "Software",
-        "Notion": "Software",
-        "Slack": "Software",
-        "GitHub": "Software",
-        "Google Cloud": "Cloud",
-        "AWS": "Cloud",
-        "Amazon Web Services": "Cloud",
-        "Azure": "Cloud",
-        "Vodafone": "Telefon",
-        "T-Mobile": "Telefon",
-        "O2": "Telefon",
-        "ČEZ": "Energie",
-        "PRE": "Energie",
-        "E.ON": "Energie",
-        "Innogy": "Energie",
-        "Shell": "Auto",
-        "OMV": "Auto",
-        "MOL": "Auto",
-        "Benzina": "Auto",
-        "Orlen": "Auto",
-        "Booking": "Cestování",
-        "Airbnb": "Cestování",
-        "RegioJet": "Cestování",
-        "České dráhy": "Cestování",
-        "Uber": "Cestování",
-        "Bolt": "Cestování",
-        "Lidl": "Potraviny",
-        "Albert": "Potraviny",
-        "Kaufland": "Potraviny",
-        "Billa": "Potraviny",
-        "Penny": "Potraviny",
-        "Tesco": "Potraviny",
-        "Makro": "Potraviny",
-        "FÚ": "Daně",
-        "Finanční úřad": "Daně",
-        "ČSSZ": "Odvody",
-        "VZP": "Zdravotní pojištění",
-        "Kooperativa": "Pojištění",
-        "Allianz": "Pojištění",
-        "ČPP": "Pojištění",
-    }
+
+RULES = {
+    "Marketing": [
+        "google",
+        "ads",
+        "adwords",
+        "meta",
+        "facebook",
+        "instagram",
+        "linkedin",
+        "seznam",
+    ],
+    "Software": [
+        "microsoft",
+        "adobe",
+        "jetbrains",
+        "github",
+        "gitlab",
+        "notion",
+        "atlassian",
+        "figma",
+        "slack",
+        "zoom",
+        "dropbox",
+        "canva",
+    ],
+    "AI": [
+        "openai",
+        "chatgpt",
+        "anthropic",
+        "claude",
+        "perplexity",
+        "gemini",
+    ],
+    "Cloud": [
+        "aws",
+        "amazon web services",
+        "azure",
+        "google cloud",
+        "digitalocean",
+        "ovh",
+    ],
+    "Energie": [
+        "čez",
+        "cez",
+        "eon",
+        "e.on",
+        "pre",
+        "innogy",
+    ],
+    "Telefon": [
+        "vodafone",
+        "t-mobile",
+        "tmobile",
+        "o2",
+    ],
+    "Potraviny": [
+        "lidl",
+        "albert",
+        "tesco",
+        "kaufland",
+        "billa",
+        "penny",
+        "globus",
+        "makro",
+    ],
+    "Auto": [
+        "shell",
+        "omv",
+        "orlen",
+        "benzina",
+        "mol",
+    ],
+    "Cestování": [
+        "booking",
+        "airbnb",
+        "ryanair",
+        "wizz",
+        "uber",
+        "bolt",
+        "regiojet",
+        "české dráhy",
+    ],
+    "Daně": [
+        "finanční úřad",
+        "financni urad",
+        "fú",
+    ],
+    "Pojištění": [
+        "kooperativa",
+        "allianz",
+        "čpp",
+        "cpp",
+        "generali",
+    ],
+    "Zdravotní pojištění": [
+        "vzp",
+        "ozp",
+    ],
+    "Odvody": [
+        "čssz",
+        "cssz",
+    ],
+}
+
+
+def normalize(text):
+
+    if text is None:
+        return ""
+
+    text = str(text).lower()
+    text = re.sub(r"\s+", " ", text)
+
+    return text
+
+
+def categorize(df):
 
     df["Kategorie"] = "Ostatní"
 
-    for keyword, category in rules.items():
+    for index, row in df.iterrows():
 
-        mask = (
-            df["protistrana"]
-            .fillna("")
-            .str.contains(keyword, case=False)
-            |
-            df["popis transakce"]
-            .fillna("")
-            .str.contains(keyword, case=False)
+        text = normalize(
+            str(row.get("protistrana", ""))
+            + " "
+            + str(row.get("popis transakce", ""))
         )
 
-        df.loc[mask, "Kategorie"] = category
+        assigned = False
+
+        for category, keywords in RULES.items():
+
+            if assigned:
+                break
+
+            for keyword in keywords:
+
+                if keyword in text:
+
+                    df.at[index, "Kategorie"] = category
+                    assigned = True
+                    break
 
     return df
